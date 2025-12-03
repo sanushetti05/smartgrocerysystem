@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SmartStock | Enterprise Suite</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg-body: #0f172a; --bg-panel: #1e293b; --text-primary: #f1f5f9; --text-secondary: #94a3b8;
+            --accent: #6366f1; --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
+            --border: 1px solid rgba(255,255,255,0.08);
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-primary); margin: 0; padding: 0; height: 100vh; display: flex; overflow: hidden; }
+        .sidebar { width: 260px; background: var(--bg-panel); border-right: var(--border); display: flex; flex-direction: column; padding: 25px; gap: 10px; z-index: 10; }
+        .brand { font-size: 1.4rem; font-weight: 800; color: var(--accent); display: flex; align-items: center; gap: 12px; margin-bottom: 30px; letter-spacing: -0.5px; }
+        .menu-btn { background: transparent; color: var(--text-secondary); border: none; padding: 14px 16px; text-align: left; font-size: 0.95rem; cursor: pointer; border-radius: 10px; transition: 0.2s; display: flex; align-items: center; gap: 12px; font-weight: 500; }
+        .menu-btn:hover { background: rgba(255,255,255,0.05); color: white; }
+        .menu-btn.active { background: var(--accent); color: white; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+        .quick-add { margin-top: auto; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 16px; border: var(--border); }
+        .quick-add h4 { margin: 0 0 15px 0; font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 1px; }
+        input, select { width: 100%; padding: 10px; background: var(--bg-body); border: var(--border); color: white; border-radius: 8px; margin-bottom: 8px; box-sizing: border-box; font-family: inherit; font-size: 0.85rem; }
+        input:focus, select:focus { border-color: var(--accent); outline: none; }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        .btn-submit { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3); }
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; position: relative; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .search-wrapper { position: relative; width: 350px; }
+        .search-wrapper i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+        .search-input { padding-left: 45px; margin-bottom: 0; background: var(--bg-panel); border-radius: 50px; }
+        .tab-view { display: none; animation: fadeUp 0.4s ease; }
+        .tab-view.active { display: block; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+        .kpi-card { background: var(--bg-panel); padding: 25px; border-radius: 16px; border: var(--border); position: relative; overflow: hidden; transition: 0.3s; }
+        .kpi-card:hover { transform: translateY(-5px); border-color: var(--accent); }
+        .kpi-label { font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 5px; }
+        .kpi-value { font-size: 2rem; font-weight: 700; color: white; letter-spacing: -1px; }
+        .kpi-icon { position: absolute; right: 20px; bottom: 20px; font-size: 4rem; opacity: 0.05; transform: rotate(-15deg); }
+        .data-panel { background: var(--bg-panel); border-radius: 16px; border: var(--border); overflow: hidden; }
+        .panel-header { padding: 20px 25px; border-bottom: var(--border); display: flex; justify-content: space-between; align-items: center; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 18px 25px; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; font-weight: 600; border-bottom: var(--border); }
+        td { padding: 18px 25px; border-bottom: var(--border); vertical-align: middle; }
+        tr:hover { background: rgba(255,255,255,0.02); }
+        .status-badge { padding: 6px 12px; border-radius: 30px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+        .st-safe { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .st-warn { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .st-danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .action-btn { width: 34px; height: 34px; border-radius: 8px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: 0.2s; margin-right: 5px; }
+        .act-sale { background: rgba(99, 102, 241, 0.15); color: var(--accent); }
+        .act-sale:hover { background: var(--accent); color: white; }
+        .act-waste { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .act-waste:hover { background: var(--danger); color: white; }
+        .act-sale.locked { opacity: 0.3; cursor: not-allowed; background: rgba(255,255,255,0.1); color: var(--text-secondary); }
+        
+        .btn-export { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn-export:hover { background: rgba(255,255,255,0.05); color: white; border-color: white; }
+        
+        /* Red clear button */
+        .btn-clear { background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn-clear:hover { background: var(--danger); color: white; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 100; display: none; align-items: center; justify-content: center; }
+        .modal-box { background: var(--bg-panel); width: 400px; padding: 30px; border-radius: 20px; border: 1px solid var(--danger); text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); animation: popIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        .modal-icon { font-size: 3rem; color: var(--danger); margin-bottom: 20px; }
+        .modal-title { font-size: 1.5rem; font-weight: 700; margin: 0 0 10px 0; }
+        .modal-text { color: var(--text-secondary); margin-bottom: 25px; line-height: 1.5; }
+        .modal-btn { background: var(--bg-body); color: white; border: 1px solid rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+        .modal-btn:hover { background: rgba(255,255,255,0.1); }
+        
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="safetyModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <h3 class="modal-title">Transaction Blocked</h3>
+            <p class="modal-text">System Protocol 403: EXPIRED items cannot be sold. Please use the Waste Protocol.</p>
+            <button class="modal-btn" onclick="closeModal()">Acknowledge</button>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="brand"><i class="fa-solid fa-layer-group"></i> SmartStock <span style="font-size:0.6rem; background:var(--accent); padding:2px 6px; border-radius:4px; color:white;">PRO</span></div>
+        <button class="menu-btn active" onclick="showTab('dashboard', this)"><i class="fa-solid fa-chart-pie"></i> Overview</button>
+        <button class="menu-btn" onclick="showTab('inventory', this)"><i class="fa-solid fa-boxes-stacked"></i> Live Inventory</button>
+        <button class="menu-btn" onclick="showTab('history', this)"><i class="fa-solid fa-clock-rotate-left"></i> Transactions</button>
+        <div class="quick-add">
+            <h4><i class="fa-solid fa-bolt"></i> Quick Entry</h4>
+            <form action="/add" method="post">
+                <input type="text" name="name" placeholder="Item Name" required autocomplete="off">
+                <input type="text" name="category" placeholder="Category" required autocomplete="off">
+                <div style="display:flex; gap:10px;">
+                    <input type="number" name="quantity" placeholder="Qty" required>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <input type="number" name="costPrice" placeholder="Buy ₹" required>
+                    <input type="number" name="sellingPrice" placeholder="Sell ₹" required>
+                </div>
+                <input type="date" name="expiryDate" required>
+                <button type="submit" class="btn-submit">Add Stock</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="header-bar">
+            <div><h2 style="margin:0;">Dashboard</h2><span style="color:var(--text-secondary); font-size:0.9rem;">Real-time inventory intelligence</span></div>
+            <div class="search-wrapper"><i class="fa-solid fa-search"></i><input type="text" id="globalSearch" class="search-input" placeholder="Search..." onkeyup="filterTables()"></div>
+        </div>
+
+        <% 
+            let totalProfit = 0, totalRev = 0;
+            let countSafe = 0, countWarn = 0, countExp = 0;
+
+            if(items && items.length > 0) {
+                items.forEach(i => {
+                    if(i.expiryDate) {
+                        let d = Math.round((new Date(i.expiryDate) - new Date()) / 86400000);
+                        if(d < 0) countExp++; else if(d <= 7) countWarn++; else countSafe++;
+                    }
+                });
+            }
+
+            if(history && history.length > 0) {
+                history.forEach(h => {
+                    if(h.type === 'SALE') totalRev += (h.revenue || 0);
+                    totalProfit += (h.netProfit || 0);
+                });
+            }
+            
+            let inventoryAssetValue = 0;
+            items.forEach(i => { inventoryAssetValue += (i.costPrice || 0) * i.quantity; });
+        %>
+
+        <div id="dashboard" class="tab-view active">
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-label">Net Profit (Actual)</div>
+                    <div class="kpi-value" style="color:<%= totalProfit >= 0 ? 'var(--success)' : 'var(--danger)' %>">
+                        <%= totalProfit >= 0 ? '+' : '' %>₹<%= totalProfit.toLocaleString() %>
+                    </div>
+                    <i class="fa-solid fa-sack-dollar kpi-icon"></i>
+                </div>
+                <div class="kpi-card"><div class="kpi-label">Total Revenue</div><div class="kpi-value" style="color:#818cf8">₹<%= totalRev.toLocaleString() %></div><i class="fa-solid fa-chart-line kpi-icon"></i></div>
+                <div class="kpi-card"><div class="kpi-label">Inventory Assets</div><div class="kpi-value" style="color:var(--warning)">₹<%= inventoryAssetValue.toLocaleString() %></div><i class="fa-solid fa-boxes-stacked kpi-icon"></i></div>
+                <div class="kpi-card"><div class="kpi-label">Expired Items</div><div class="kpi-value" style="color:var(--danger)"><%= countExp %></div><i class="fa-solid fa-trash-arrow-up kpi-icon"></i></div>
+            </div>
+            
+            <div style="display:grid; grid-template-columns: 2fr 1fr; gap:20px;">
+                <div class="data-panel">
+                    <div class="panel-header"><h3 style="margin:0; font-size:1rem;">Recent Activity</h3></div>
+                    <table>
+                        <thead><tr><th>Status</th><th>Item</th><th>Profit</th><th>Time</th></tr></thead>
+                        <tbody>
+                            <% if(history) { history.slice(0, 5).forEach(h => { %>
+                            <tr>
+                                <td><% if(h.type === 'SALE') { %><span class="status-badge st-safe"><i class="fa-solid fa-check"></i> SOLD</span><% } else { %><span class="status-badge st-danger"><i class="fa-solid fa-xmark"></i> WASTE</span><% } %></td>
+                                <td><%= h.itemName %></td>
+                                <td style="font-weight:bold; color:<%= h.netProfit >= 0 ? 'var(--success)' : 'var(--danger)' %>">
+                                    <%= h.netProfit >= 0 ? '+' : '' %>₹<%= h.netProfit %>
+                                </td>
+                                <td style="color:var(--text-secondary); font-size:0.85rem;"><%= h.date.toLocaleTimeString() %></td>
+                            </tr>
+                            <% }) } %>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="data-panel" style="padding:20px; display:flex; align-items:center; justify-content:center;"><canvas id="chartDoughnut"></canvas></div>
+            </div>
+        </div>
+
+        <div id="inventory" class="tab-view">
+            <div class="data-panel">
+                <div class="panel-header"><h3 style="margin:0;">Live Stock</h3><button class="btn-export" onclick="exportToCSV('inventoryTable')"><i class="fa-solid fa-download"></i> CSV</button></div>
+                <table id="inventoryTable">
+                    <thead><tr><th>Product</th><th>Category</th><th>Prices (Buy/Sell)</th><th>Expiry</th><th>Date</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        <% if(items) { items.forEach(item => { 
+                            let diff = 0; let dateStr = "N/A";
+                            if(item.expiryDate) {
+                                diff = Math.round((new Date(item.expiryDate) - new Date()) / 86400000);
+                                dateStr = new Date(item.expiryDate).toISOString().split('T')[0];
+                            }
+                            let badgeClass = "st-safe"; let text = diff + " Days"; let icon = "fa-check-circle";
+                            let isExpired = false;
+                            if(diff < 0) { badgeClass = "st-danger"; text = "EXPIRED"; icon = "fa-ban"; isExpired = true; }
+                            else if(diff <= 7) { badgeClass = "st-warn"; text = "Expiring Soon"; icon = "fa-exclamation-triangle"; }
+                        %>
+                        <tr>
+                            <td style="font-weight:600;"><%= item.name %></td>
+                            <td><span style="background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:4px; font-size:0.8rem;"><%= item.category %></span></td>
+                            <td><span style="color:var(--text-secondary)">₹<%= item.costPrice || 0 %></span> / <strong>₹<%= item.sellingPrice || 0 %></strong></td>
+                            <td><span class="status-badge <%= badgeClass %>"><i class="fa-solid <%= icon %>"></i> <%= text %></span></td>
+                            <td style="color:var(--text-secondary);"><%= dateStr %></td>
+                            <td>
+                                <button class="action-btn act-sale <%= isExpired ? 'locked' : '' %>" onclick="validateSale(event, <%= isExpired %>, '<%= item._id %>')"><i class="fa-solid fa-cash-register"></i></button>
+                                <form action="/process" method="post" style="display:inline;"><input type="hidden" name="itemId" value="<%= item._id %>"><input type="hidden" name="action" value="waste"><button class="action-btn act-waste"><i class="fa-solid fa-trash"></i></button></form>
+                            </td>
+                        </tr>
+                        <% }) } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="history" class="tab-view">
+            <div class="data-panel">
+                <div class="panel-header">
+                    <h3 style="margin:0;">Ledger</h3>
+                    <div style="display:flex; gap:10px;">
+                        <form action="/clear-history" method="post" style="margin:0;">
+                            <button class="btn-clear" onclick="return confirm('Are you sure you want to delete ALL logs?')"><i class="fa-solid fa-trash-can"></i> Clear Log</button>
+                        </form>
+                        <button class="btn-export" onclick="exportToCSV('historyTable')"><i class="fa-solid fa-download"></i> CSV</button>
+                    </div>
+                </div>
+                <table id="historyTable">
+                    <thead><tr><th>Type</th><th>Item</th><th>Revenue</th><th>Net Profit</th><th>Time</th></tr></thead>
+                    <tbody>
+                        <% if(history) { history.forEach(h => { %>
+                        <tr>
+                            <td><% if(h.type === 'SALE') { %><span style="color:var(--success); font-weight:bold;">+ SALE</span><% } else { %><span style="color:var(--danger); font-weight:bold;">- WASTE</span><% } %></td>
+                            <td><%= h.itemName %></td>
+                            <td>₹<%= h.revenue %></td>
+                            <td style="font-weight:bold; color:<%= h.netProfit >= 0 ? 'var(--success)' : 'var(--danger)' %>"><%= h.netProfit >= 0 ? '+' : '' %>₹<%= h.netProfit %></td>
+                            <td style="color:var(--text-secondary);"><%= h.date.toLocaleString() %></td>
+                        </tr>
+                        <% }) } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <form id="jsSaleForm" action="/process" method="post" style="display:none;"><input type="hidden" name="itemId" id="jsItemId"><input type="hidden" name="action" value="sold"></form>
+
+    <script>
+        function showTab(tabId, btn) { document.querySelectorAll('.tab-view').forEach(t => t.classList.remove('active')); document.getElementById(tabId).classList.add('active'); document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+        function validateSale(event, isExpired, itemId) { event.preventDefault(); if (isExpired) { document.getElementById('safetyModal').style.display = 'flex'; } else { document.getElementById('jsItemId').value = itemId; document.getElementById('jsSaleForm').submit(); } }
+        function closeModal() { document.getElementById('safetyModal').style.display = 'none'; }
+        function filterTables() { let filter = document.getElementById("globalSearch").value.toUpperCase(); document.querySelectorAll("table").forEach(table => { let tr = table.getElementsByTagName("tr"); for (let i = 1; i < tr.length; i++) { let tdArray = tr[i].getElementsByTagName("td"); let found = false; for(let j=0; j<tdArray.length; j++){ if (tdArray[j] && tdArray[j].innerText.toUpperCase().indexOf(filter) > -1) { found = true; break; } } tr[i].style.display = found ? "" : "none"; } }); }
+        function exportToCSV(tableId) { let rows = document.getElementById(tableId).querySelectorAll("tr"); let csv = []; for (let i = 0; i < rows.length; i++) { let row = [], cols = rows[i].querySelectorAll("td, th"); for (let j = 0; j < cols.length; j++) row.push(cols[j].innerText.replace(/,/g, "")); csv.push(row.join(",")); } let link = document.createElement("a"); link.download = "Report.csv"; link.href = window.URL.createObjectURL(new Blob([csv.join("\n")], {type: "text/csv"})); link.style.display = "none"; document.body.appendChild(link); link.click(); }
+        const ctx = document.getElementById('chartDoughnut'); if(ctx) { new Chart(ctx, { type: 'doughnut', data: { labels: ['Safe', 'At Risk', 'Expired'], datasets: [{ data: [<%= countSafe %>, <%= countWarn %>, <%= countExp %>], backgroundColor: ['#10b981', '#f59e0b', '#ef4444'], borderWidth: 0 }] }, options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } } } }); }
+    </script>
+</body>
+</html>
